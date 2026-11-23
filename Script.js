@@ -67,7 +67,7 @@ for(let s=1,ok=0;ok<25&&s<4000;s++){
   const sc=Math.max(t.w,t.h)*1000+t.w*t.h;
   if(!L||sc<L.sc){t.sc=sc;L=t}
 }
-
+// 
 /* ---------- Construção da interface ---------- */
 const $=id=>document.getElementById(id);
 const G=$('grid'),CL=$('clues'),NOW=$('now'),wide=matchMedia('(min-width:901px)');
