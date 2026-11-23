@@ -70,7 +70,8 @@ for(let s=1,ok=0;ok<25&&s<4000;s++){
 
 /* ---------- Construção da interface ---------- */
 const $=id=>document.getElementById(id);
-const G=$('grid'),CL=$('clues');
+const G=$('grid'),CL=$('clues'),NOW=$('now'),wide=matchMedia('(min-width:901px)');
+const lenOf=w=>w.a.length+' letras'+(w.p.length>1?' ('+w.p.join('+')+')':'');
 const inp=new Map(),own=new Map(),cells=new Map();
 const words=L.pl.sort((x,y)=>x.n-y.n);
 let act=null,solvedN=0,wasCur=false;
@@ -83,6 +84,8 @@ words.forEach(w=>{
 });
 G.style.gridTemplateColumns='repeat('+L.w+',var(--cs))';
 G.style.gridTemplateRows='repeat('+L.h+',var(--cs))';
+function fit(){const w=document.querySelector('.gridwrap').clientWidth-30;document.documentElement.style.setProperty('--cs',Math.max(28,Math.min(42,Math.floor((w-(L.w-1)*3)/L.w)))+'px')}
+fit();addEventListener('resize',fit);
 for(const k of L.g.keys()){
   const [r,c]=k.split(',').map(Number);
   const d=document.createElement('div');d.className='cell';
@@ -120,9 +123,12 @@ function step(k,dir,clear){
 function mark(){
   cells.forEach(c=>c.classList.remove('act'));
   CL.querySelectorAll('.clue').forEach(c=>c.classList.remove('act'));
-  if(!act)return;
+  if(!act){NOW.hidden=true;return}
   act.cells.forEach(k=>cells.get(k).classList.add('act'));
   const li=$('c'+act.n);li.classList.add('act');
+  NOW.hidden=false;
+  NOW.innerHTML='<span class="num">'+act.n+'</span><span class="nowtxt"><small>'+(act.d?'↓ vertical':'→ horizontal')+' · '+lenOf(act)+'</small>'+act.t+'</span>';
+  if(wide.matches)li.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 function check(w){
   const li=$('c'+w.n);
@@ -145,7 +151,7 @@ function solve(w){
   if(solvedN===words.length)setTimeout(win,900);
 }
 function win(){
-  $('modal').hidden=false;
+  $('modal').hidden=false;$('close').focus();
   const cols=['#3b5bdb','#2f9e44','#f59f00','#e03131','#ae3ec9','#1098ad'];
   for(let i=0;i<50;i++){
     const c=document.createElement('i');c.className='conf';
@@ -155,8 +161,8 @@ function win(){
   }
 }
 words.forEach(w=>{
-  const li=document.createElement('li');li.className='clue';li.id='c'+w.n;
-  const len=w.a.length+' letras'+(w.p.length>1?' ('+w.p.join('+')+')':'');
+  const li=document.createElement('li');li.className='clue';li.id='c'+w.n;li.tabIndex=0;
+  const len=lenOf(w);
   li.innerHTML='<div class="top"><span class="num">'+w.n+'</span><span>'+(w.d?'↓ vertical':'→ horizontal')+'</span><span>·</span><span>'+len+'</span></div>'
    +'<p>'+w.t+'</p><button class="hint">Dica extra</button><p class="extra" hidden>'+w.e+'</p><p class="msg" hidden>Ainda não é essa. Confira as letras que cruzam com outras palavras ou abra a dica extra.</p>';
   li.addEventListener('click',e=>{
@@ -167,11 +173,19 @@ words.forEach(w=>{
     const free=w.cells.find(k=>!inp.get(k).value&&!inp.get(k).readOnly)||w.cells.find(k=>!inp.get(k).readOnly);
     if(free){const t=inp.get(free);t.focus({preventScroll:true});cells.get(free).scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'})}
   });
+  li.addEventListener('keydown',e=>{if(e.target===li&&(e.key==='Enter'||e.key===' ')){e.preventDefault();li.click()}});
   CL.appendChild(li);
 });
-$('close').onclick=()=>{$('modal').hidden=true};
+const shut=()=>{$('modal').hidden=true};
+$('close').onclick=shut;
+addEventListener('keydown',e=>{if(e.key==='Escape')shut()});
+$('modal').addEventListener('click',e=>{if(e.target.id==='modal')shut()});
 $('reset').onclick=()=>{
   words.forEach(w=>{w.solved=false;const li=$('c'+w.n);li.className='clue';li.querySelector('.extra').hidden=true;li.querySelector('.msg').hidden=true;li.querySelector('.hint').textContent='Dica extra'});
   inp.forEach((i,k)=>{i.value='';i.readOnly=false;const c=cells.get(k);c.className='cell';c.style.animationDelay=''});
   solvedN=0;act=null;$('prog').textContent='0 de '+words.length;$('fill').style.width='0';$('modal').hidden=true;
 };
+
+const TB=$('theme'),dm=matchMedia('(prefers-color-scheme:dark)');
+TB.textContent=dm.matches?'☀️':'🌙';
+TB.onclick=()=>{const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==='dark':dm.matches;r.dataset.theme=dark?'light':'dark';TB.textContent=dark?'🌙':'☀️'};
